@@ -111,7 +111,7 @@ class ZenDesk2Tender
     tickets = []
     page = 1
     loop do
-      response = conn.get("search.json?query=type:ticket&page=#{page}")
+      response = conn.get("search.json?query=type:ticket+status:open+status:pending+status:new&page=#{page}")
       if response.success?
         page += 1
         break unless response.body.size > 0
