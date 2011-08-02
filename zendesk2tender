@@ -1,3 +1,22 @@
 #!/usr/bin/env ruby -rubygems -Ilib
+#
+# Produce a Tender import archive by collecting tickets and discussions from
+# the ZenDesk API. Requires the ZenDesk subdomain and login credentials.
+#
+# For more info: https://help.tenderapp.com/faqs/setup-installation/importing
+#
+#   Usage:
+#     zendesk2tender -e <email> -p <password> -s <subdomain>
+#
+#   `zendesk2tender --help' displays detailed option info.
+#
+#   Prerequisites:
+#     # Ruby gems
+#     gem install faraday -v "~>0.4.5"
+#     gem install trollop
+#     gem install yajl-ruby
+#     # Python tools (must be in your PATH)
+#     html2text.py: # https://github.com/aaronsw/html2text
+#
 require 'zendesk2tender'
 ZenDesk2Tender.run
