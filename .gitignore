@@ -1,1 +1,7 @@
 .*.sw[nop]
+.DS_Store
+*.sw[nop]
+*.sw[nop]
+.*
+tags
+*.tgz
