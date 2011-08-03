@@ -291,6 +291,7 @@ class ZenDesk2Tender
       exporter.export_tickets
       exporter.create_archive
     rescue Error => e
+      puts "FAILED WITH AN ERROR"
       puts e.to_s
       exit 1
     ensure
