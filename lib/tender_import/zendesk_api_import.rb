@@ -3,10 +3,9 @@ require 'faraday'
 require 'trollop'
 require 'fileutils'
 require 'logger'
-require 'tender_import_format'
 
 # Produce a Tender import archive from a ZenDesk site using the ZenDesk API.
-class ZenDesk2Tender
+class TenderImport::ZendeskApiImport
   class Error < StandardError; end
   class ResponseJSON < Faraday::Response::Middleware
     def parse(body)
@@ -125,10 +124,11 @@ class ZenDesk2Tender
         #{$0} -e <email> -p <password> -s <subdomain>
 
       Prerequisites:
-        # Ruby gems
-        gem install faraday -v "~>0.4.5"
+        # Ruby gems (should already be installed)
+        gem install faraday
         gem install trollop
         gem install yajl-ruby
+
         # Python tools (must be in your PATH)
         html2text.py: http://www.aaronsw.com/2002/html2text/
 
@@ -157,7 +157,7 @@ class ZenDesk2Tender
       @client = client
       @author_email = {}
       @logger = client.logger
-      @archive = TenderImportFormat.new(client.subdomain)
+      @archive = TenderImport::Archive.new(client.subdomain)
       if `which html2text.py`.empty?
         raise Error, 'missing prerequisite: html2text.py is not in your PATH'
       end
@@ -295,9 +295,11 @@ class ZenDesk2Tender
       puts e.to_s
       exit 1
     ensure
-      puts "REPORT"
-      puts exporter.stats.inspect
-      puts exporter.report.join("\n")
+      if exporter
+        puts "RESULTS"
+        puts exporter.stats.inspect
+        puts exporter.report.join("\n")
+      end
     end
   end
 

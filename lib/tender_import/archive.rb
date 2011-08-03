@@ -6,7 +6,7 @@
 # ## Example
 #
 #     # Currently requires a site name.
-#     archive = TenderImportFormat.new('tacotown')
+#     archive = TenderImport::Archive.new('tacotown')
 #
 #     # Can add users, categories and discussions to the archive.
 #     archive.add_user :email => 'frank@tacotown.com', :state => 'support'
@@ -38,7 +38,7 @@
 #
 require 'yajl'
 require 'fileutils'
-class TenderImportFormat
+class TenderImport::Archive
   class Error < StandardError; end
   include FileUtils
   attr_reader :site, :report, :stats, :buffer
@@ -59,8 +59,7 @@ class TenderImportFormat
 
   # Returns the params on success, nil on failure
   def add_user params
-    defaults = {:state => 'user'}
-    validate_and_store :user, defaults.merge(params)
+    validate_and_store :user, {:state => 'user'}.merge(params)
   end
   
   # Returns a handle needed for adding discussions
@@ -186,7 +185,7 @@ class TenderImportFormat
 
   def valid? type, params
     problems = []
-    # XXX this is not really enough validation
+    # XXX this is not really enough validation, also it's ugly as fuck
     if type == :user && (params[:email].nil? || params[:email].empty?)
       problems << "Missing email in user data: #{params.inspect}."
     end

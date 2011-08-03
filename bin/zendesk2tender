@@ -11,12 +11,13 @@
 #   `zendesk2tender --help' displays detailed option info.
 #
 #   Prerequisites:
-#     # Ruby gems
-#     gem install faraday -v "~>0.4.5"
+#
+#     # Ruby gems (should be installed as part of the gem)
+#     gem install faraday
 #     gem install trollop
 #     gem install yajl-ruby
 #     # Python tools (must be in your PATH)
 #     html2text.py: # https://github.com/aaronsw/html2text
 #
-require 'zendesk2tender'
-ZenDesk2Tender.run
+require 'tender_import'
+TenderImport::ZendeskApiImport.run
