@@ -5,10 +5,17 @@
 #
 # ## Example
 #
+#     # Currently requires a site name.
 #     archive = TenderImportFormat.new('tacotown')
+#
+#     # Can add users, categories and discussions to the archive.
 #     archive.add_user :email => 'frank@tacotown.com', :state => 'support'
 #     archive.add_user :email => 'bob@bobfoo.com'
+#
+#     # When you add a category you'll get a handle needed to add discusions.
 #     category = archive.add_category :name => 'Tacos'
+#
+#     # Discussions must have at least one comment.
 #     archive.add_discussion category, :title => 'your tacos',
 #       :author_email => 'bob@bobfoo.com',
 #       :comments => [{
@@ -18,8 +25,13 @@
 #         :author_email => 'frank@tacotown.com',
 #         :body => 'You have terrible taste in tacos. Good day, sir.'
 #       }]
+#
+#     # By default, files are written as you add them, so this will just
+#     # assemble a gzipped tar archive from those files.
 #     filename = archive.write_archive
 #     puts "your import file is #{filename}"
+#
+#     # If any errors are reported, some records were not included in the archive.
 #     if !archive.report.empty?
 #       puts "Problems reported: ", *archive.report
 #     end
@@ -63,11 +75,11 @@ class TenderImportFormat
   end
 
   def category_key cat
-    "category:#{category_id cat}"
+    "category:#{category_id cat}".downcase
   end
 
   def category_id cat
-    cat[:name].gsub(/\W+/,'_')
+    cat[:name].gsub(/\W+/,'_').downcase
   end
 
   def categories
