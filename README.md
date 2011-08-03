@@ -1,4 +1,4 @@
-# Tender Import Scripts
+# Tender Import Tools
 
 This is a repository of code for producing [Tender import
 archives](https://help.tenderapp.com/faqs/setup-installation/importing),
@@ -15,4 +15,22 @@ That said, if you make useful or necessary modifications to a script, or
 produce a script for importing from a new service, please
 [open a Tender discussion](https://help.tenderapp.com/discussions/suggestions#new_topic_form)
 or send a pull request to let us know.
+
+## Installation
+
+This toolset can be installed as a Ruby gem:
+
+    $ gem install tender_import
+
+## Command-line
+
+The only command-line tool included is zendesk2tender:
+
+    $ zendesk2tender --help
+
+## API
+
+There is also an API for building Tender import archives with Ruby.
+
+See lib/tender_import/archive.rb for an example of API usage.
 
