@@ -1,6 +1,6 @@
 # Tender Import Scripts
 
-This is a repository of scripts for producing [Tender import
+This is a repository of code for producing [Tender import
 archives](https://help.tenderapp.com/faqs/setup-installation/importing),
 for Tender customers who wish to move their discussions from another service.
 

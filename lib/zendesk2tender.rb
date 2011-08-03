@@ -3,6 +3,7 @@ require 'faraday'
 require 'trollop'
 require 'fileutils'
 require 'logger'
+require 'tender_import_format'
 
 # Produce a Tender import archive from a ZenDesk site using the ZenDesk API.
 class ZenDesk2Tender
@@ -148,7 +149,7 @@ class ZenDesk2Tender
   end # }}}
 
   class Exporter # {{{
-    attr_reader :export_dir, :logger, :client
+    attr_reader :logger, :client
     include Log
     include FileUtils
 
@@ -156,7 +157,7 @@ class ZenDesk2Tender
       @client = client
       @author_email = {}
       @logger = client.logger
-      @export_dir = ".#{client.subdomain}-export-#{$$}"
+      @archive = TenderImportFormat.new(client.subdomain)
       if `which html2text.py`.empty?
         raise Error, 'missing prerequisite: html2text.py is not in your PATH'
       end
@@ -166,38 +167,36 @@ class ZenDesk2Tender
       "#{self.class.name} (#{client.subdomain})"
     end
 
+    def stats
+      @archive.stats
+    end
+
+    def report
+      @archive.report
+    end
+
     def export_users # {{{
       log 'exporting users'
-      dir_name = File.join(export_dir,'users')
-      mkdir_p dir_name
       client.users.each do |user|
-        File.open(File.join(dir_name, "#{user['email'].gsub(/\W+/,'_')}.json"), "w") do |file|
-          @author_email[user['id'].to_s] = user['email']
-          log "exporting user #{user['email']}"
-          file.puts(Yajl::Encoder.encode(
-            :name => user['name'],
-            :email => user['email'],
-            :created_at => user['created_at'],
-            :updated_at => user['updated_at'],
-            :state => (user['roles'].to_i == 0 ? 'user' : 'support')
-          ))
-        end
+        @author_email[user['id'].to_s] = user['email']
+        log "exporting user #{user['email']}"
+        @archive.add_user \
+          :name => user['name'],
+          :email => user['email'],
+          :created_at => user['created_at'],
+          :updated_at => user['updated_at'],
+          :state => (user['roles'].to_i == 0 ? 'user' : 'support')
       end
     end # }}}
 
     def export_categories # {{{
       log 'exporting categories'
-      dir_name = File.join(export_dir,'categories')
-      mkdir_p dir_name
       client.forums.each do |forum|
-        File.open(File.join(dir_name, "#{forum['id']}.json"), "w") do |file|
-          log "exporting category #{forum['name']}"
-          file.puts(Yajl::Encoder.encode(
+        log "exporting category #{forum['name']}"
+        category = @archive.add_category \
             :name => forum['name'],
             :summary => forum['description']
-          ))
-        end
-        export_discussions(forum['id'])
+        export_discussions(forum['id'], category)
       end
     end # }}}
 
@@ -206,77 +205,59 @@ class ZenDesk2Tender
       tickets = client.open_tickets
       if tickets.size > 0
         # create category for tickets
-        dir_name = File.join(export_dir,'categories')
-        mkdir_p "#{dir_name}"
-        File.open(File.join(dir_name, "tickets.json"), "w") do |file|
-          log "creating ticket category"
-          file.puts(Yajl::Encoder.encode(
-            :name => 'Tickets',
-            :summary => 'Imported from ZenDesk.'
-          ))
-        end
+        log "creating ticket category"
+        category = @archive.add_category \
+          :name => 'Tickets',
+          :summary => 'Imported from ZenDesk.'
         # export tickets into new category
-        dir_name = File.join(export_dir,'categories', 'tickets')
-        mkdir_p dir_name
-        mkdir_p 'tmp'
         tickets.each do |ticket|
-          File.open(File.join(dir_name, "#{ticket['nice_id']}.json"), "w") do |file|
-            comments = ticket['comments'].map do |post|
-              {
-                :body => post['value'],
-                :author_email => author_email(post['author_id']),
-                :created_at => post['created_at'],
-                :updated_at => post['updated_at'],
-              }
-            end
-            log "exporting ticket #{ticket['nice_id']}"
-            file.puts(Yajl::Encoder.encode(
-              :title        => ticket['subject'],
-              :author_email => author_email(ticket['submitter_id']),
-              :created_at   => ticket['created_at'],
-              :updated_at   => ticket['updated_at'],
-              :comments     => comments
-            ))
-          end
-        end
-      end
-    end # }}}
-
-    def export_discussions forum_id # {{{
-      dir_name = File.join(export_dir,'categories', forum_id.to_s)
-      mkdir_p dir_name
-      mkdir_p 'tmp'
-      client.entries(forum_id).each do |entry|
-        File.open(File.join(dir_name, "#{entry['id']}.json"), "w") do |file|
-          comments = client.posts(entry['id']).map do |post|
-            dump_body post, post['body']
+          comments = ticket['comments'].map do |post|
             {
-              :body => load_body(entry),
-              :author_email => author_email(post['user_id']),
+              :body => post['value'],
+              :author_email => author_email(post['author_id']),
               :created_at => post['created_at'],
               :updated_at => post['updated_at'],
             }
           end
-          dump_body entry, entry['body']
-          log "exporting discussion #{entry['title']}"
-          file.puts(Yajl::Encoder.encode(
-            :title    => entry['title'],
-            :comments => [{
-              :body => load_body(entry),
-              :author_email => author_email(entry['submitter_id']),
-              :created_at => entry['created_at'],
-              :updated_at => entry['updated_at'],
-            }] + comments
-          ))
-          rm "tmp/#{entry['id']}_body.html"
+          log "exporting ticket #{ticket['nice_id']}"
+          @archive.add_discussion category, 
+            :title        => ticket['subject'],
+            :author_email => author_email(ticket['submitter_id']),
+            :created_at   => ticket['created_at'],
+            :updated_at   => ticket['updated_at'],
+            :comments     => comments
         end
+      end
+    end # }}}
+
+    def export_discussions forum_id, category # {{{
+      client.entries(forum_id).each do |entry|
+        comments = client.posts(entry['id']).map do |post|
+          dump_body post, post['body']
+          {
+            :body => load_body(entry),
+            :author_email => author_email(post['user_id']),
+            :created_at => post['created_at'],
+            :updated_at => post['updated_at'],
+          }
+        end
+        dump_body entry, entry['body']
+        log "exporting discussion #{entry['title']}"
+        @archive.add_discussion category,
+          :title    => entry['title'],
+          :author_email => author_email(entry['submitter_id']),
+          :comments => [{
+            :body => load_body(entry),
+            :author_email => author_email(entry['submitter_id']),
+            :created_at => entry['created_at'],
+            :updated_at => entry['updated_at'],
+          }] + comments
+        rm "tmp/#{entry['id']}_body.html"
       end
     end # }}}
   
     def create_archive # {{{
-      export_file = "export_#{client.subdomain}.tgz"
-      system "tar -zcf #{export_file} -C #{export_dir} ."
-      system "rm -rf #{export_dir}"
+      export_file = @archive.write_archive
       log "created #{export_file}"
     end # }}}
 
@@ -312,6 +293,10 @@ class ZenDesk2Tender
     rescue Error => e
       puts e.to_s
       exit 1
+    ensure
+      puts "REPORT"
+      puts exporter.stats.inspect
+      puts exporter.report.join("\n")
     end
   end
 
