@@ -121,6 +121,12 @@ class TenderImportFormat
     if type == :category && (params[:name].nil? || params[:name].empty?)
       problems << "Missing name in category data: #{params.inspect}."
     end
+    if type == :discussion && (params[:author_email].nil? || params[:author_email].empty?)
+      problems << "Missing author_email in discussion data: #{params.inspect}."
+    end
+    if type == :discussion && (params[:comments].nil? || params[:comments].any? {|c| c[:author_email].nil? || c[:author_email].empty?})
+      problems << "Missing comments and authors in discussion data: #{params.inspect}."
+    end
     if problems.empty?
       true
     else
