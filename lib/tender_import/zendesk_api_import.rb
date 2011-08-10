@@ -222,6 +222,8 @@ class TenderImport::ZendeskApiImport
           log "exporting ticket #{ticket['nice_id']}"
           @archive.add_discussion category, 
             :title        => ticket['subject'],
+            :state        => ticket['is_locked'] ? 'resolved' : 'open',
+            :private      => !ticket['is_public'],
             :author_email => author_email(ticket['submitter_id']),
             :created_at   => ticket['created_at'],
             :updated_at   => ticket['updated_at'],
@@ -259,6 +261,7 @@ class TenderImport::ZendeskApiImport
     def create_archive # {{{
       export_file = @archive.write_archive
       log "created #{export_file}"
+      return export_file
     end # }}}
 
     protected
