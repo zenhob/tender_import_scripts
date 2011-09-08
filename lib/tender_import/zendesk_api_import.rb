@@ -7,11 +7,11 @@ require 'logger'
 # Produce a Tender import archive from a ZenDesk site using the ZenDesk API.
 class TenderImport::ZendeskApiImport
   class Error < StandardError; end
-  class ResponseJSON < Faraday::Response::Middleware
-    def parse(body)
-      Yajl::Parser.parse(body)
-    end
-  end
+  #class ResponseJSON < Faraday::Response::Middleware
+  #  def parse(body)
+  #    Yajl::Parser.parse(body)
+  #  end
+  #end
 
   module Log # {{{
     attr_reader :logger
@@ -39,7 +39,8 @@ class TenderImport::ZendeskApiImport
       @logger = opts[:logger] || Logger.new(STDOUT).tap {|l| l.level = Logger::INFO}
       @conn = Faraday::Connection.new("http://#{subdomain}.zendesk.com") do |b|
         b.adapter :net_http
-        b.use ResponseJSON
+        #b.use ResponseJSON
+        b.response :yajl
       end
       conn.basic_auth(opts[:email], opts[:password])
     end
@@ -87,7 +88,7 @@ class TenderImport::ZendeskApiImport
       debug "fetching #{resource_url}"
       loop do
         response = conn.get(resource_url)
-        if response.success?
+        if response.success? && !response.body.kind_of? String
           return resource_key ? response.body[resource_key] : response.body
         elsif response.status == 503
           log "got a 503 (API throttle), waiting 30 seconds..."
