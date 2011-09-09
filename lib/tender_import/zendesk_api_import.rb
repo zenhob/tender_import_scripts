@@ -88,7 +88,7 @@ class TenderImport::ZendeskApiImport
       debug "fetching #{resource_url}"
       loop do
         response = conn.get(resource_url)
-        if response.success? && !response.body.kind_of? String
+        if response.success? && !response.body.kind_of?(String)
           return resource_key ? response.body[resource_key] : response.body
         elsif response.status == 503
           log "got a 503 (API throttle), waiting 30 seconds..."
