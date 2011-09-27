@@ -5,13 +5,11 @@ require 'fileutils'
 require 'logger'
 
 # Produce a Tender import archive from a ZenDesk site using the ZenDesk API.
+#
+# You can set TenderImport::ZendeskApiImport::Exporter.html2text_bin to the full
+# path of your html2text binary if you don't want it in your shell PATH.
 class TenderImport::ZendeskApiImport
   class Error < StandardError; end
-  #class ResponseJSON < Faraday::Response::Middleware
-  #  def parse(body)
-  #    Yajl::Parser.parse(body)
-  #  end
-  #end
 
   module Log # {{{
     attr_reader :logger
@@ -150,6 +148,13 @@ class TenderImport::ZendeskApiImport
   end # }}}
 
   class Exporter # {{{
+    class << self
+      attr_accessor :html2text_bin
+    end
+    def html2text_bin
+      self.class.html2text_bin
+    end
+
     attr_reader :logger, :client
     include Log
     include FileUtils
@@ -159,8 +164,10 @@ class TenderImport::ZendeskApiImport
       @author_email = {}
       @logger = client.logger
       @archive = TenderImport::Archive.new(client.subdomain)
-      if `which html2text.py`.empty?
-        raise Error, 'missing prerequisite: html2text.py is not in your PATH'
+      unless html2text_bin
+        if `which html2text.py`.empty?
+          raise Error, 'missing prerequisite: html2text.py is not in your PATH'
+        end
       end
     end
 
@@ -280,7 +287,11 @@ class TenderImport::ZendeskApiImport
     end
 
     def load_body entry
-      `html2text.py /$PWD/tmp/#{entry['id']}_body.html`
+      if html2text_bin
+        `#{html2text_bin} /$PWD/tmp/#{entry['id']}_body.html`
+      else
+        `html2text.py /$PWD/tmp/#{entry['id']}_body.html`
+      end
     end
 
   end # }}}
