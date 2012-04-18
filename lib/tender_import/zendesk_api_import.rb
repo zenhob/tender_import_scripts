@@ -35,7 +35,7 @@ class TenderImport::ZendeskApiImport
       @opts = options || command_line_options
       @subdomain = opts[:subdomain]
       @logger = opts[:logger] || Logger.new(STDOUT).tap {|l| l.level = Logger::INFO}
-      @conn = Faraday::Connection.new("http://#{subdomain}.zendesk.com") do |b|
+      @conn = Faraday::Connection.new("https://#{subdomain}.zendesk.com") do |b|
         b.adapter :net_http
         #b.use ResponseJSON
         b.response :yajl
@@ -83,9 +83,9 @@ class TenderImport::ZendeskApiImport
     # In some cases the desired data is not in the top level of the payload. In
     # that case specify resource_key to pull the data from that key.
     def fetch_resource resource_url, resource_key = nil
-      debug "fetching #{resource_url}"
+      debug "fetching api/v1/#{resource_url}"
       loop do
-        response = conn.get(resource_url)
+        response = conn.get("api/v1/" + resource_url)
         if response.success? && !response.body.kind_of?(String)
           return resource_key ? response.body[resource_key] : response.body
         elsif response.status == 503
